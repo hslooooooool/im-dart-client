@@ -121,12 +121,22 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
       case MESSAGE:
         print("消息");
         _list.add('[Received] 消息');
+        _getMessage(data);
         break;
       case REPLY_BODY:
         print("回执消息");
         _list.add('[Received] 回执消息');
+        _getReplyBody(data);
         break;
     }
+  }
+
+  void _getMessage(data) {
+    var type = data[0];
+  }
+
+  void _getReplyBody(data) {
+    var type = data[0];
   }
 
   /*发送消息*/
@@ -204,14 +214,15 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
     protubuf.setAll(header.length, data);
     try {
       _channel.sink.add(protubuf);
+
       print("给服务端发送消息，消息号=$msgCode");
     } catch (e) {
       print("send捕获异常：msgCode=$msgCode，e=${e.toString()}");
     }
   }
 
-  Int8List buildHeader(type, length) {
-    var header = Int8List(DATA_HEADER_LENGTH);
+  Uint8List buildHeader(type, length) {
+    var header = Uint8List(DATA_HEADER_LENGTH);
     header[0] = type;
     header[1] = (length & 0xff);
     header[2] = ((length >> 8) & 0xff);
