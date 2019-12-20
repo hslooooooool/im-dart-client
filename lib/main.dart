@@ -55,8 +55,7 @@ class WebSocketDemo extends StatefulWidget {
 class _WebSocketDemoState extends State<WebSocketDemo> {
   List _list = new List();
   String _message;
-  IOWebSocketChannel _channel =
-      IOWebSocketChannel.connect("ws://192.168.1.103:23456");
+  IOWebSocketChannel _channel;
 
   void _onChangedHandle(value) {
     setState(() {
@@ -64,21 +63,31 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
     });
   }
 
-  _WebSocketDemoState() {
-    print('[Info] Connected OK！');
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _channel.sink.add("Connected OK!");
+  /*连接消息服务*/
+  void _connect() async {
+    _channel = IOWebSocketChannel.connect(IM_URI);
     /*监听消息*/
     _channel.stream.listen((message) {
       print(message);
       setState(() {
-        _list.add('[Received] ${message.toString()}');
         _handleMessage(message);
       });
+    });
+  }
+
+  /*绑定账号*/
+  void _bindHandle() async {
+    getPackageInfo().then((onValue) {
+      var sendBody = new SendBodyModel();
+      sendBody.key = "client_bind";
+      sendBody.data["account"] = "FLUTTER DEMO";
+      sendBody.data["channel"] = SDK_CHANNEL;
+      sendBody.data["version"] = SDK_VERSION;
+      sendBody.data["osVersion"] = onValue.version;
+      sendBody.data["device"] = onValue.appName;
+      sendBody.data["packageName"] = onValue.packageName;
+      sendBody.data["deviceId"] = "${onValue.hashCode}";
+      sendMsg(SEND_BODY, sendBody);
     });
   }
 
@@ -106,31 +115,18 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
     switch (type) {
       case HEART_RQ:
         print("心跳消息");
+        _list.add('[Received] 心跳消息');
         _sendHeartbeatResponse();
         break;
       case MESSAGE:
         print("消息");
+        _list.add('[Received] 消息');
         break;
       case REPLY_BODY:
         print("回执消息");
+        _list.add('[Received] 回执消息');
         break;
     }
-  }
-
-  /*绑定账号*/
-  void _bindHandle() async {
-    getPackageInfo().then((onValue) {
-      var sendBody = new SendBodyModel();
-      sendBody.key = "client_bind";
-      sendBody.data["account"] = "FLUTTER DEMO";
-      sendBody.data["channel"] = SDK_CHANNEL;
-      sendBody.data["version"] = SDK_VERSION;
-      sendBody.data["osVersion"] = onValue.version;
-      sendBody.data["device"] = onValue.appName;
-      sendBody.data["packageName"] = onValue.packageName;
-      sendBody.data["deviceId"] = "${onValue.hashCode}";
-      sendMsg(SEND_BODY, sendBody);
-    });
   }
 
   /*发送消息*/
@@ -160,6 +156,10 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
+            RaisedButton(
+              child: Text('CONNECT'),
+              onPressed: _connect,
+            ),
             RaisedButton(
               child: Text('BIND'),
               onPressed: _bindHandle,
