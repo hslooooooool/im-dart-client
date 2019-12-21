@@ -118,17 +118,17 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
     /*收到服务端发来的心跳请求，立即回复响应，否则服务端会在10秒后断开连接*/
     switch (type) {
       case HEART_RQ:
-        print("心跳消息");
+        print("[Received] 心跳消息");
         _list.add('[Received] 心跳消息');
         _sendHeartbeatResponse();
         break;
       case MESSAGE:
-        print("消息");
+        print("[Received] 自定义消息");
         _list.add('[Received] 自定义消息');
         _getMessage(data);
         break;
       case REPLY_BODY:
-        print("回执消息");
+        print("[Received] 回执消息");
         _list.add('[Received] 回执消息');
         _getReplyBody(data);
         break;
@@ -145,21 +145,21 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
 
   /*发送消息*/
   void _sendHandle() {
-    if (_message.isNotEmpty) {
+    setState(() {
       _list.add('[Sended] $_message');
-      getPackageInfo().then((onValue) {
-        var sendBody = new SendBodyModel();
-        sendBody.key = "client_bind";
-        sendBody.data["account"] = "FLUTTER DEMO";
-        sendBody.data["channel"] = SDK_CHANNEL;
-        sendBody.data["version"] = SDK_VERSION;
-        sendBody.data["osVersion"] = "${onValue.version}";
-        sendBody.data["device"] = "${onValue.appName}";
-        sendBody.data["packageName"] = "${onValue.packageName}";
-        sendBody.data["deviceId"] = "${onValue.hashCode}";
-        sendMsg(SEND_BODY, sendBody);
-      });
-    }
+    });
+    getPackageInfo().then((onValue) {
+      var sendBody = new SendBodyModel();
+      sendBody.key = "client_closed";
+      sendBody.data["account"] = "FLUTTER DEMO";
+      sendBody.data["channel"] = SDK_CHANNEL;
+      sendBody.data["version"] = SDK_VERSION;
+      sendBody.data["osVersion"] = "${onValue.version}";
+      sendBody.data["device"] = "${onValue.appName}";
+      sendBody.data["packageName"] = "${onValue.packageName}";
+      sendBody.data["deviceId"] = "${onValue.hashCode}";
+      sendMsg(SEND_BODY, sendBody);
+    });
   }
 
   Widget _generatorForm() {
@@ -189,8 +189,8 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
   }
 
   List<Widget> _generatorList() {
-    List<Widget> tmpList = _list.map((item) => ListItem(msg: item)).toList();
     List<Widget> prefix = [_generatorForm()];
+    List<Widget> tmpList = _list.map((item) => ListItem(msg: item)).toList();
     prefix.addAll(tmpList);
     return prefix;
   }
