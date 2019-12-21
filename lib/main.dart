@@ -7,7 +7,7 @@ import 'package:package_info/package_info.dart';
 import 'package:web_socket_channel/io.dart';
 
 /*IM服务器参数*/
-const IM_URI = "ws://192.168.1.103:23456";
+const IM_URI = "ws://192.168.1.3:23456";
 
 const SDK_VERSION = "1.0.0";
 const APP_VERSION = "1.0.0";
@@ -18,8 +18,8 @@ const APP_PACKAGE = "vip.qsos.im.flutter";
 const ACTION_999 = "999";
 /*消息头部字节数*/
 const DATA_HEADER_LENGTH = 3;
-/*心跳指令*/
-//var CMD_HEARTBEAT_RESPONSE =  Uint8List.fromList(new List()[67,82]);
+/*心跳指令，67对应C 82对应R*/
+const CMD_HEARTBEAT_RESPONSE = [67, 82];
 /*客户端心跳*/
 const HEART_CR = 0;
 /*服务端心跳*/
@@ -66,6 +66,9 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
   /*连接消息服务*/
   void _connect() async {
     _channel = IOWebSocketChannel.connect(IM_URI);
+    setState(() {
+      _list.add('[Connect] 👌');
+    });
     /*监听消息*/
     _channel.stream.listen((message) {
       print(message);
@@ -83,27 +86,28 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
       sendBody.data["account"] = "FLUTTER DEMO";
       sendBody.data["channel"] = SDK_CHANNEL;
       sendBody.data["version"] = SDK_VERSION;
-      sendBody.data["osVersion"] = onValue.version;
-      sendBody.data["device"] = onValue.appName;
-      sendBody.data["packageName"] = onValue.packageName;
+      sendBody.data["osVersion"] = "${onValue.version}";
+      sendBody.data["device"] = "${onValue.appName}";
+      sendBody.data["packageName"] = "${onValue.packageName}";
       sendBody.data["deviceId"] = "${onValue.hashCode}";
+      print(sendBody.data);
       sendMsg(SEND_BODY, sendBody);
     });
   }
 
   /*发送心跳*/
   void _sendHeartbeatResponse() {
-    var data = new Uint8List(2);
-    data[0] = 67;
-    data[1] = 82;
-    var header = buildHeader(HEART_CR, data.length);
-    var protubuf = new Uint8List(header.length + data.length);
+    var cmd = Uint8List.fromList(CMD_HEARTBEAT_RESPONSE);
+    var header = buildHeader(HEART_CR, cmd.length);
+    var protubuf = new Uint8List(header.length + cmd.length);
     protubuf.setAll(0, header);
-    protubuf.setAll(header.length, data);
+    protubuf.setAll(header.length, cmd);
     try {
       _channel.sink.add(protubuf);
+      _list.add('[Send] 心跳消息');
       print("给服务端发送心跳");
     } catch (e) {
+      _list.add('[Send] 心跳消息异常');
       print("给服务端发送心跳异常，${e.toString()}");
     }
   }
@@ -120,7 +124,7 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
         break;
       case MESSAGE:
         print("消息");
-        _list.add('[Received] 消息');
+        _list.add('[Received] 自定义消息');
         _getMessage(data);
         break;
       case REPLY_BODY:
@@ -149,9 +153,9 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
         sendBody.data["account"] = "FLUTTER DEMO";
         sendBody.data["channel"] = SDK_CHANNEL;
         sendBody.data["version"] = SDK_VERSION;
-        sendBody.data["osVersion"] = onValue.version;
-        sendBody.data["device"] = onValue.appName;
-        sendBody.data["packageName"] = onValue.packageName;
+        sendBody.data["osVersion"] = "${onValue.version}";
+        sendBody.data["device"] = "${onValue.appName}";
+        sendBody.data["packageName"] = "${onValue.packageName}";
         sendBody.data["deviceId"] = "${onValue.hashCode}";
         sendMsg(SEND_BODY, sendBody);
       });
@@ -214,7 +218,7 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
     protubuf.setAll(header.length, data);
     try {
       _channel.sink.add(protubuf);
-
+      _list.add('[Send] 发送消息>>>$sendBody');
       print("给服务端发送消息，消息号=$msgCode");
     } catch (e) {
       print("send捕获异常：msgCode=$msgCode，e=${e.toString()}");
