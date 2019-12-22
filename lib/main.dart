@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app_2/model/proto/Message.pb.dart';
+import 'package:flutter_app_2/model/proto/ReplyBody.pb.dart';
 import 'package:flutter_app_2/model/proto/SendBody.pb.dart';
 import 'package:package_info/package_info.dart';
 import 'package:web_socket_channel/io.dart';
@@ -67,7 +69,7 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
   void _connect() async {
     _channel = IOWebSocketChannel.connect(IM_URI);
     setState(() {
-      _list.add('[Connect] 👌');
+      _list.add('[Connect] 已建立连接');
     });
     /*监听消息*/
     _channel.stream.listen((message) {
@@ -97,6 +99,7 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
 
   /*发送心跳*/
   void _sendHeartbeatResponse() {
+    _list.add('[Received] 服务器心跳检测');
     var cmd = Uint8List.fromList(CMD_HEARTBEAT_RESPONSE);
     var header = buildHeader(HEART_CR, cmd.length);
     var protubuf = new Uint8List(header.length + cmd.length);
@@ -104,43 +107,49 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
     protubuf.setAll(header.length, cmd);
     try {
       _channel.sink.add(protubuf);
-      _list.add('[Send] 心跳消息');
+      _list.add('[Send] 心跳检测发送');
       print("给服务端发送心跳");
     } catch (e) {
-      _list.add('[Send] 心跳消息异常');
+      _list.add('[Send] 心跳检测发送异常');
       print("给服务端发送心跳异常，${e.toString()}");
     }
   }
 
   /*消息接收处理*/
   void _handleMessage(Uint8List data) {
+    if (data.length < DATA_HEADER_LENGTH) {
+      print("空消息");
+      return;
+    }
     var type = data[0];
     /*收到服务端发来的心跳请求，立即回复响应，否则服务端会在10秒后断开连接*/
     switch (type) {
       case HEART_RQ:
         print("[Received] 心跳消息");
-        _list.add('[Received] 心跳消息');
         _sendHeartbeatResponse();
         break;
       case MESSAGE:
         print("[Received] 自定义消息");
-        _list.add('[Received] 自定义消息');
         _getMessage(data);
         break;
       case REPLY_BODY:
         print("[Received] 回执消息");
-        _list.add('[Received] 回执消息');
         _getReplyBody(data);
         break;
     }
   }
 
-  void _getMessage(data) {
-    var type = data[0];
+  /*自定义消息解析*/
+  void _getMessage(Uint8List data) {
+    MessageModel message = new MessageModel.fromBuffer(
+        data.sublist(DATA_HEADER_LENGTH, data.length));
+    _list.add('[Received] 自定义消息 ${message.title} 内容：${message.content}');
   }
 
+  /*服务器回执消息*/
   void _getReplyBody(data) {
-    var type = data[0];
+    ReplyModel reply = new ReplyModel.fromBuffer(data);
+    _list.add('[Received] 服务器回执 ${reply.key} 内容：${reply.message}');
   }
 
   /*发送消息*/
