@@ -36,15 +36,17 @@ const REPLY_BODY = 4;
 
 typedef OnMessage = void Function(MessageModel message);
 typedef OnReply = void Function(ReplyModel message);
+typedef OnSend = void Function(SendBodyModel send);
 typedef OnError = void Function(Exception error);
 
 /// 消息回调接口
 class OnMessageListener {
   OnMessage getMessage;
   OnReply getReply;
+  OnSend getSend;
   OnError error;
 
-  OnMessageListener({this.getMessage, this.getReply, this.error});
+  OnMessageListener({this.getMessage, this.getReply, this.getSend, this.error});
 }
 
 /// 消息服务帮助类
@@ -102,7 +104,7 @@ class IMWebSocketHelper {
     }
     /**监听消息*/
     _channel.stream.listen((message) {
-      log(message);
+      log("$message");
       _handleMessage(message);
     });
   }
@@ -164,7 +166,8 @@ class IMWebSocketHelper {
 
   /// 服务器回执消息解析
   void _getReplyBody(data) {
-    ReplyModel reply = new ReplyModel.fromBuffer(data);
+    ReplyModel reply = new ReplyModel.fromBuffer(
+        data.sublist(DATA_HEADER_LENGTH, data.length));
     log("[Received] 服务器回执 ${reply.key} 内容：${reply.message}");
     mOnMessageListener.getReply(reply);
   }
@@ -188,7 +191,9 @@ class IMWebSocketHelper {
     protubuf.setAll(header.length, data);
     try {
       _channel.sink.add(protubuf);
-      print("发送消息，$sendBody");
+      mOnMessageListener.getSend(sendBody);
+      print(
+          "[Send] 发送指令 protubuf=$protubuf \n lenth=${protubuf.length} \n $sendBody");
     } catch (e) {
       print("发送异常，sendBody>>>$sendBody error>>>${e.toString()}");
     }
@@ -224,14 +229,20 @@ class IMWebSocketHelper {
       DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
       if (Platform.isAndroid) {
         AndroidDeviceInfo info = await deviceInfo.androidInfo;
-        sendBody.data["channel"] = "ios";
-        sendBody.data["osVersion"] = info.product;
-        sendBody.data["device"] = info.model;
-        sendBody.data["deviceId"] = info.id;
+        sendBody.data["channel"] = "android";
+        if (info.bootloader.isNotEmpty) {
+          sendBody.data["osVersion"] = info.bootloader;
+        }
+        if (info.model.isNotEmpty) {
+          sendBody.data["device"] = info.model;
+        }
+        if (info.id.isNotEmpty) {
+          sendBody.data["deviceId"] = info.model;
+        }
       } else if (Platform.isIOS) {
         IosDeviceInfo info = await deviceInfo.iosInfo;
-        sendBody.data["channel"] = "android";
-        sendBody.data["osVersion"] = info.utsname.version;
+        sendBody.data["channel"] = "ios";
+        sendBody.data["osVersion"] = info.systemVersion;
         sendBody.data["device"] = info.model;
         sendBody.data["deviceId"] = info.utsname.machine;
       }

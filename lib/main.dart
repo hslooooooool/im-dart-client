@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_2/model/proto/Message.pb.dart';
 import 'package:flutter_app_2/model/proto/ReplyBody.pb.dart';
+import 'package:flutter_app_2/model/proto/SendBody.pb.dart';
 import 'package:flutter_app_2/sdk/im_lib.dart';
 
 void main() => runApp(new MyApp());
@@ -30,10 +31,49 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
   String _message;
   IMWebSocketHelper _helper = IMWebSocketHelper.instance;
 
-  void _onChangedHandle(value) {
-    setState(() {
-      _message = value.toString();
-    });
+  Widget _generatorForm() {
+    return Column(
+      children: <Widget>[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            RaisedButton(
+              child: Text('CONNECT'),
+              onPressed: _connect,
+            ),
+            RaisedButton(
+              child: Text('BIND'),
+              onPressed: _bindHandle,
+            ),
+            RaisedButton(
+              child: Text('Close'),
+              onPressed: _closeHandle,
+            ),
+          ],
+        )
+      ],
+    );
+  }
+
+  List<Widget> _generatorList() {
+    List<Widget> prefix = [_generatorForm()];
+    List<Widget> tmpList = _list.map((item) => ListItem(msg: item)).toList();
+    prefix.addAll(tmpList);
+    return prefix;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.all(10),
+      children: _generatorList(),
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _helper.sendCloseAction();
   }
 
   /// 连接消息服务
@@ -47,7 +87,11 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
       _handleMessage(message);
     }, getReply: (ReplyModel reply) {
       _handleReply(reply);
-    }, error: (Exception error) {
+    }, getSend: (SendBodyModel send) {
+      setState(() {
+        _list.add('[Send] $send');
+      });
+        }, error: (Exception error) {
       _handleError(error);
     }));
   }
@@ -88,51 +132,12 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
     });
   }
 
-  Widget _generatorForm() {
-    return Column(
-      children: <Widget>[
-        TextField(onChanged: _onChangedHandle),
-        SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            RaisedButton(
-              child: Text('CONNECT'),
-              onPressed: _connect,
-            ),
-            RaisedButton(
-              child: Text('BIND'),
-              onPressed: _bindHandle,
-            ),
-            RaisedButton(
-              child: Text('SEND'),
-              onPressed: _sendHandle,
-            ),
-          ],
-        )
-      ],
-    );
-  }
-
-  List<Widget> _generatorList() {
-    List<Widget> prefix = [_generatorForm()];
-    List<Widget> tmpList = _list.map((item) => ListItem(msg: item)).toList();
-    prefix.addAll(tmpList);
-    return prefix;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: EdgeInsets.all(10),
-      children: _generatorList(),
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
+  /// 关闭连接
+  void _closeHandle() {
     _helper.sendCloseAction();
+    setState(() {
+      _list.add('[Closed]');
+    });
   }
 }
 
