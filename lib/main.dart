@@ -78,7 +78,7 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
 
   /// 连接消息服务
   void _connect() async {
-    _helper.config("ws://192.168.3.107:23456", "test dart", false).connect();
+    _helper.config("ws://192.168.1.3:23456", "test dart", false).connect();
     setState(() {
       _list.add('[Connect] 建立连接');
     });
@@ -91,7 +91,7 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
       setState(() {
         _list.add('[Send] $send');
       });
-        }, error: (Exception error) {
+    }, error: (Exception error) {
       _handleError(error);
     }));
   }
@@ -106,7 +106,7 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
   /// 服务器回执
   void _handleReply(ReplyModel reply) {
     setState(() {
-      _list.add('[Received] 服务器回执 ${reply.key} 内容：${reply.message}');
+      _list.add('[Received] 服务器回执：$reply');
     });
   }
 

@@ -60,7 +60,7 @@ class IMWebSocketHelper {
   OnMessageListener mOnMessageListener;
 
   /// IM服务器地址
-  var mUrl = "ws://192.168.3.107:23456";
+  var mUrl = "ws://192.168.1.3:23456";
 
   /// IM服务器账号
   var mAccount = "";
@@ -168,7 +168,7 @@ class IMWebSocketHelper {
   void _getReplyBody(data) {
     ReplyModel reply = new ReplyModel.fromBuffer(
         data.sublist(DATA_HEADER_LENGTH, data.length));
-    log("[Received] 服务器回执 ${reply.key} 内容：${reply.message}");
+    log("[Received] 服务器回执：$reply");
     mOnMessageListener.getReply(reply);
   }
 
