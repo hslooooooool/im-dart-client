@@ -67,7 +67,7 @@ class IMWebSocketHelper {
   var mAutoBind = true;
 
   /// 设置IM服务器地址
-  IMWebSocketHelper init(String url, String account, [bool autoBind = true]) {
+  IMWebSocketHelper config(String url, String account, [bool autoBind = true]) {
     mUrl = url;
     mAccount = account;
     mAutoBind = account.isNotEmpty && autoBind;
@@ -94,11 +94,11 @@ class IMWebSocketHelper {
   }
 
   /// 连接消息服务
-  void _connect() async {
+  void connect() async {
     _channel = IOWebSocketChannel.connect(mUrl);
     log("$_channel");
     if (mAutoBind) {
-      this._bindHandle();
+      this.bindHandle();
     }
     /**监听消息*/
     _channel.stream.listen((message) {
@@ -108,7 +108,7 @@ class IMWebSocketHelper {
   }
 
   /// 绑定账号
-  void _bindHandle() async {
+  void bindHandle() async {
     _createSendBody().then((sendBody) {
       log("${sendBody.data}");
       sendBody.key = "client_bind";
@@ -117,7 +117,7 @@ class IMWebSocketHelper {
   }
 
   /// 发送心跳
-  void _sendHeartbeatResponse() {
+  void sendHeartbeatResponse() {
     var cmd = Uint8List.fromList(CMD_HEARTBEAT_RESPONSE);
     var header = buildHeader(HEART_CR, cmd.length);
     var protubuf = new Uint8List(header.length + cmd.length);
@@ -141,7 +141,7 @@ class IMWebSocketHelper {
     switch (type) {
       case HEART_RQ:
         print("[Received] 心跳消息");
-        _sendHeartbeatResponse();
+        sendHeartbeatResponse();
         break;
       case MESSAGE:
         print("[Received] 自定义消息");
@@ -175,8 +175,8 @@ class IMWebSocketHelper {
       log("${sendBody.data}");
       sendBody.key = "client_closed";
       sendAction(SEND_BODY, sendBody);
-      closeHandler();
     });
+    closeHandler();
   }
 
   /// 发送指令消息*/
@@ -222,13 +222,13 @@ class IMWebSocketHelper {
       sendBody.data["account"] = mAccount;
       sendBody.data["version"] = SDK_VERSION;
       DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-      if (Platform.isIOS) {
+      if (Platform.isAndroid) {
         AndroidDeviceInfo info = await deviceInfo.androidInfo;
         sendBody.data["channel"] = "ios";
         sendBody.data["osVersion"] = info.product;
         sendBody.data["device"] = info.model;
         sendBody.data["deviceId"] = info.id;
-      } else if (Platform.isAndroid) {
+      } else if (Platform.isIOS) {
         IosDeviceInfo info = await deviceInfo.iosInfo;
         sendBody.data["channel"] = "android";
         sendBody.data["osVersion"] = info.utsname.version;
