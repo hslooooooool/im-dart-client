@@ -5,33 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app_2/model/proto/Message.pb.dart';
 import 'package:flutter_app_2/model/proto/ReplyBody.pb.dart';
 import 'package:flutter_app_2/model/proto/SendBody.pb.dart';
-import 'package:package_info/package_info.dart';
+import 'package:flutter_app_2/sdk/im_lib.dart';
 import 'package:web_socket_channel/io.dart';
-
-/*IM服务器参数*/
-const IM_URI = "ws://192.168.1.3:23456";
-
-const SDK_VERSION = "1.0.0";
-const APP_VERSION = "1.0.0";
-const APP_NAME = "1.0.0";
-const SDK_CHANNEL = "flutter";
-const APP_PACKAGE = "vip.qsos.im.flutter";
-/*特殊的消息类型，代表被服务端强制下线*/
-const ACTION_999 = "999";
-/*消息头部字节数*/
-const DATA_HEADER_LENGTH = 3;
-/*心跳指令，67对应C 82对应R*/
-const CMD_HEARTBEAT_RESPONSE = [67, 82];
-/*客户端心跳*/
-const HEART_CR = 0;
-/*服务端心跳*/
-const HEART_RQ = 1;
-/*消息*/
-const MESSAGE = 2;
-/*客户端消息发送*/
-const SEND_BODY = 3;
-/*服务端消息回执*/
-const REPLY_BODY = 4;
 
 void main() => runApp(new MyApp());
 
@@ -57,7 +32,7 @@ class WebSocketDemo extends StatefulWidget {
 class _WebSocketDemoState extends State<WebSocketDemo> {
   List _list = new List();
   String _message;
-  IOWebSocketChannel _channel;
+  IMWebSocketHelper _helper;
 
   void _onChangedHandle(value) {
     setState(() {
@@ -67,52 +42,14 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
 
   /*连接消息服务*/
   void _connect() async {
-    _channel = IOWebSocketChannel.connect(IM_URI);
+    _helper.init("ws://192.168.3.107:23456", "test dart", false);
     setState(() {
-      _list.add('[Connect] 已建立连接');
+      _list.add('[Connect] 建立连接');
     });
-    /*监听消息*/
-    _channel.stream.listen((message) {
-      print(message);
-      setState(() {
-        _handleMessage(message);
-      });
-    });
-  }
+    _helper.setOnMessageListener(
+        OnMessageListener(getMessage: (MessageModel message) {
 
-  /*绑定账号*/
-  void _bindHandle() async {
-    getPackageInfo().then((onValue) {
-      var sendBody = new SendBodyModel();
-      sendBody.key = "client_bind";
-      sendBody.data["account"] = "FLUTTER DEMO";
-      sendBody.data["channel"] = SDK_CHANNEL;
-      sendBody.data["version"] = SDK_VERSION;
-      sendBody.data["osVersion"] = "${onValue.version}";
-      sendBody.data["device"] = "${onValue.appName}";
-      sendBody.data["packageName"] = "${onValue.packageName}";
-      sendBody.data["deviceId"] = "${onValue.hashCode}";
-      print(sendBody.data);
-      sendMsg(SEND_BODY, sendBody);
-    });
-  }
-
-  /*发送心跳*/
-  void _sendHeartbeatResponse() {
-    _list.add('[Received] 服务器心跳检测');
-    var cmd = Uint8List.fromList(CMD_HEARTBEAT_RESPONSE);
-    var header = buildHeader(HEART_CR, cmd.length);
-    var protubuf = new Uint8List(header.length + cmd.length);
-    protubuf.setAll(0, header);
-    protubuf.setAll(header.length, cmd);
-    try {
-      _channel.sink.add(protubuf);
-      _list.add('[Send] 心跳检测发送');
-      print("给服务端发送心跳");
-    } catch (e) {
-      _list.add('[Send] 心跳检测发送异常');
-      print("给服务端发送心跳异常，${e.toString()}");
-    }
+        }));
   }
 
   /*消息接收处理*/
@@ -226,8 +163,10 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
     protubuf.setAll(0, header);
     protubuf.setAll(header.length, data);
     try {
+      setState(() {
+        _list.add('[Send] 发送消息>>>$sendBody');
+      });
       _channel.sink.add(protubuf);
-      _list.add('[Send] 发送消息>>>$sendBody');
       print("给服务端发送消息，消息号=$msgCode");
     } catch (e) {
       print("send捕获异常：msgCode=$msgCode，e=${e.toString()}");
@@ -262,10 +201,4 @@ class ListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(msg);
   }
-}
-
-/*获取APP信息*/
-Future<PackageInfo> getPackageInfo() async {
-  var packageInfo = await PackageInfo.fromPlatform();
-  return packageInfo;
 }
