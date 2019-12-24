@@ -31,6 +31,30 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
   String _message;
   IMWebSocketHelper _helper = IMWebSocketHelper.instance;
 
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          flex: 1,
+          child: ListView(
+            padding: EdgeInsets.all(10),
+            children: _generatorList(),
+          ),
+        ),
+        _generatorForm(),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _helper.sendCloseAction();
+  }
+
   Widget _generatorForm() {
     return Column(
       children: <Widget>[
@@ -56,29 +80,13 @@ class _WebSocketDemoState extends State<WebSocketDemo> {
   }
 
   List<Widget> _generatorList() {
-    List<Widget> prefix = [_generatorForm()];
     List<Widget> tmpList = _list.map((item) => ListItem(msg: item)).toList();
-    prefix.addAll(tmpList);
-    return prefix;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: EdgeInsets.all(10),
-      children: _generatorList(),
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _helper.sendCloseAction();
+    return tmpList;
   }
 
   /// 连接消息服务
   void _connect() async {
-    _helper.config("ws://192.168.1.3:23456", "test dart", false).connect();
+    _helper.config("ws://192.168.1.103:23456", "test dart", false).connect();
     setState(() {
       _list.add('[Connect] 建立连接');
     });
